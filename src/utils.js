@@ -1,9 +1,6 @@
 const { ethers } = require("ethers");
 
-exports.getContractDefinitionFromPath = function getContractDefinitionFromPath(
-  ctx,
-  path
-) {
+function getContractDefinitionFromPath(ctx, path) {
   const pathPieces = path.split(".");
 
   let importsBase = ctx;
@@ -14,12 +11,9 @@ exports.getContractDefinitionFromPath = function getContractDefinitionFromPath(
   const c = importsBase?.contracts?.[pathPieces[pathPieces.length - 1]];
 
   return c || null;
-};
+}
 
-exports.getMergedAbiFromContractPaths = function getMergedAbiFromContractPaths(
-  ctx,
-  paths
-) {
+function getMergedAbiFromContractPaths(ctx, paths) {
   return paths
     .flatMap((contractPath) => {
       const c = getContractDefinitionFromPath(ctx, contractPath);
@@ -50,4 +44,9 @@ exports.getMergedAbiFromContractPaths = function getMergedAbiFromContractPaths(
 
       return !alreadyExists;
     });
+}
+
+module.exports = {
+  getContractDefinitionFromPath,
+  getMergedAbiFromContractPaths,
 };
