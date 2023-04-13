@@ -1,2 +1,3 @@
 # cannon-plugin-router
-Cannon Plugin for generating Router
+
+Standalone wrapped for [`@synthetixio/router`](https://www.npmjs.com/package/@synthetixio/router) as a [Cannon](https://usecannon.com) Plugin.
