@@ -35,11 +35,6 @@ module.exports = {
   validate: config,
 
   async getState(runtime, ctx, config) {
-    if (!runtime.baseDir) {
-      return null; // skip consistency check
-      // todo: might want to do consistency check for config but not files, will see
-    }
-
     const newConfig = this.configInject(ctx, config);
 
     const contractAbis = {};
