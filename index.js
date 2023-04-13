@@ -1,7 +1,7 @@
 const {
   getContractDefinitionFromPath,
   getMergedAbiFromContractPaths,
-} = require('@usecannon/builder/dist/util');
+} = require('@usecannon/builder');
 const Debug = require('debug');
 const { ContractFactory } = require('ethers');
 const _ = require('lodash');
