@@ -3,7 +3,7 @@ const {
   getMergedAbiFromContractPaths,
 } = require('@usecannon/builder/dist/util');
 const Debug = require('debug');
-const { ethers } = require('ethers');
+const { ContractFactory } = require('ethers');
 const _ = require('lodash');
 const solc = require('solc');
 const { compileContract, getCompileInput } = require('@synthetixio/router/dist/compile');
@@ -132,7 +132,7 @@ module.exports = {
       },
     });
 
-    const deployTxn = await ethers.ContractFactory.fromSolidity(
+    const deployTxn = await ContractFactory.fromSolidity(
       solidityInfo
     ).getDeployTransaction();
 
