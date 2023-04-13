@@ -1,24 +1,27 @@
 const {
   getContractDefinitionFromPath,
   getMergedAbiFromContractPaths,
-} = require('@usecannon/builder');
-const Debug = require('debug');
-const { ContractFactory } = require('ethers');
-const _ = require('lodash');
-const solc = require('solc');
-const { compileContract, getCompileInput } = require('@synthetixio/router/dist/compile');
-const { generateRouter } = require('@synthetixio/router/dist/generate');
+} = require("./src/utils");
+const Debug = require("debug");
+const { ContractFactory } = require("ethers");
+const _ = require("lodash");
+const solc = require("solc");
+const {
+  compileContract,
+  getCompileInput,
+} = require("@synthetixio/router/dist/compile");
+const { generateRouter } = require("@synthetixio/router/dist/generate");
 
-const debug = Debug('router:cannon');
+const debug = Debug("router:cannon");
 
 const config = {
   properties: {
-    contracts: { elements: { type: 'string' } },
+    contracts: { elements: { type: "string" } },
   },
   optionalProperties: {
-    from: { type: 'string' },
-    salt: { type: 'string' },
-    depends: { elements: { type: 'string' } },
+    from: { type: "string" },
+    salt: { type: "string" },
+    depends: { elements: { type: "string" } },
   },
 };
 
@@ -27,15 +30,11 @@ const config = {
 // address, abi, etc.
 // if already deployed, reexport deployment options for usage downstream and exit with no changes
 module.exports = {
-  label: 'router',
+  label: "router",
 
   validate: config,
 
-  async getState(
-    runtime,
-    ctx,
-    config
-  ) {
+  async getState(runtime, ctx, config) {
     if (!runtime.baseDir) {
       return null; // skip consistency check
       // todo: might want to do consistency check for config but not files, will see
@@ -79,13 +78,8 @@ module.exports = {
     return config;
   },
 
-  async exec(
-    runtime,
-    ctx,
-    config,
-    packageState
-  ) {
-    debug('exec', config);
+  async exec(runtime, ctx, config, packageState) {
+    debug("exec", config);
 
     const contracts = config.contracts.map((n) => {
       const contract = getContractDefinitionFromPath(ctx, n);
@@ -104,14 +98,14 @@ module.exports = {
       };
     });
 
-    const contractName = packageState.currentLabel.slice('router.'.length);
+    const contractName = packageState.currentLabel.slice("router.".length);
 
     const sourceCode = generateRouter({
       contractName,
       contracts,
     });
 
-    debug('router source code', sourceCode);
+    debug("router source code", sourceCode);
 
     const inputData = await getCompileInput(contractName, sourceCode);
     const solidityInfo = await compileContract(contractName, sourceCode);
@@ -140,7 +134,7 @@ module.exports = {
       ? await runtime.getSigner(config.from)
       : await runtime.getDefaultSigner(deployTxn, config.salt);
 
-    debug('using deploy signer with address', await signer.getAddress());
+    debug("using deploy signer with address", await signer.getAddress());
 
     const deployedRouterContractTxn = await signer.sendTransaction(deployTxn);
 
@@ -154,7 +148,7 @@ module.exports = {
           deployedOn: packageState.currentLabel,
           deployTxnHash: deployedRouterContractTxn.hash,
           contractName,
-          sourceName: contractName + '.sol',
+          sourceName: contractName + ".sol",
           //sourceCode
         },
       },

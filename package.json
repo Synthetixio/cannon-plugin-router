@@ -12,11 +12,7 @@
     "router",
     "solidity"
   ],
-  "peerDependencies": {
-    "@usecannon/builder": "^2.4.0"
-  },
   "dependencies": {
-    "@synthetixio/router": "3.0.4-alpha.0",
-    "@usecannon/builder": "^2.4.0"
+    "@synthetixio/router": "3.0.4-alpha.0"
   }
 }
