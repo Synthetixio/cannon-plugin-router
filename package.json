@@ -13,6 +13,6 @@
     "solidity"
   ],
   "dependencies": {
-    "@synthetixio/router": "3.1.2"
+    "@synthetixio/router": "3.1.3"
   }
 }
