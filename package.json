@@ -1,6 +1,6 @@
 {
   "name": "cannon-plugin-router",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Router Generation for Cannon",
   "main": "index.js",
   "repository": "git@github.com:Synthetixio/cannon-plugin-router.git",
