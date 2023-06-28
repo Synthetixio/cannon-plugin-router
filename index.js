@@ -5,11 +5,6 @@ const {
 const Debug = require("debug");
 const { ContractFactory } = require("ethers");
 const _ = require("lodash");
-const {
-  compileContract,
-  getCompileInput,
-} = require("@synthetixio/router/dist/compile");
-const { generateRouter } = require("@synthetixio/router/dist/generate");
 
 const debug = Debug("router:cannon");
 
@@ -73,6 +68,12 @@ module.exports = {
   },
 
   async exec(runtime, ctx, config, packageState) {
+    const { generateRouter } = require("@synthetixio/router/dist/generate");
+    const {
+      compileContract,
+      getCompileInput,
+    } = require("@synthetixio/router/dist/compile");
+
     debug("exec", config);
 
     const contracts = config.contracts.map((n) => {
