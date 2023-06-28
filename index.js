@@ -5,7 +5,6 @@ const {
 const Debug = require("debug");
 const { ContractFactory } = require("ethers");
 const _ = require("lodash");
-const solc = require("solc");
 const {
   compileContract,
   getCompileInput,
@@ -116,7 +115,9 @@ module.exports = {
       deployedBytecode: solidityInfo.deployedBytecode,
       linkReferences: {},
       source: {
-        solcVersion: solc.version().match(/(^.*commit\.[0-9a-f]*)\..*/)[1],
+        solcVersion: require("solc")
+          .version()
+          .match(/(^.*commit\.[0-9a-f]*)\..*/)[1],
         input: JSON.stringify(inputData),
       },
     });
