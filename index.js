@@ -5,19 +5,16 @@ const {
 const Debug = require("debug");
 const { ContractFactory } = require("ethers");
 const _ = require("lodash");
+const z = require('zod');
 
 const debug = Debug("router:cannon");
 
-const config = {
-  properties: {
-    contracts: { elements: { type: "string" } },
-  },
-  optionalProperties: {
-    from: { type: "string" },
-    salt: { type: "string" },
-    depends: { elements: { type: "string" } },
-  },
-};
+const config = z.object({
+  contracts: z.array(z.string()),
+  from: z.string().optional(),
+  salt: z.string().optional(),
+  depends: z.array(z.string()).optional(),
+});
 
 // ensure the specified contract is already deployed
 // if not deployed, deploy the specified hardhat contract with specfied options, export
