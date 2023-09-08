@@ -1,19 +1,16 @@
-const {
-  getContractDefinitionFromPath,
-  getMergedAbiFromContractPaths,
-} = require("./src/utils");
+const { getContractDefinitionFromPath, getMergedAbiFromContractPaths } = require("./src/utils");
 const Debug = require("debug");
 const { ContractFactory } = require("ethers");
 const _ = require("lodash");
-const z = require('zod');
+const z = require("zod");
 
 const debug = Debug("router:cannon");
 
 const config = z.object({
-  contracts: z.array(z.string()),
-  from: z.string().optional(),
-  salt: z.string().optional(),
-  depends: z.array(z.string()).optional(),
+	contracts: z.array(z.string()),
+	from: z.string().optional(),
+	salt: z.string().optional(),
+	depends: z.array(z.string()).optional(),
 });
 
 // ensure the specified contract is already deployed
@@ -21,131 +18,136 @@ const config = z.object({
 // address, abi, etc.
 // if already deployed, reexport deployment options for usage downstream and exit with no changes
 module.exports = {
-  label: "router",
+	label: "router",
 
-  validate: config,
+	validate: config,
 
-  async getState(runtime, ctx, config) {
-    const newConfig = this.configInject(ctx, config);
+	async getState(runtime, ctx, config) {
+		const newConfig = this.configInject(ctx, config);
 
-    const contractAbis = {};
-    const contractAddresses = {};
+		const contractAbis = {};
+		const contractAddresses = {};
 
-    for (const n of newConfig.contracts) {
-      const contract = getContractDefinitionFromPath(ctx, n);
-      if (!contract) {
-        throw new Error(`contract not found: ${n}`);
-      }
+		for (const n of newConfig.contracts) {
+			const contract = getContractDefinitionFromPath(ctx, n);
+			if (!contract) {
+				throw new Error(`contract not found: ${n}`);
+			}
 
-      contractAbis[n] = contract.abi;
-      contractAddresses[n] = contract.address;
-    }
+			contractAbis[n] = contract.abi;
+			contractAddresses[n] = contract.address;
+		}
 
-    return {
-      contractAbis,
-      contractAddresses,
-      config: newConfig,
-    };
-  },
+		return {
+			contractAbis,
+			contractAddresses,
+			config: newConfig,
+		};
+	},
 
-  configInject(ctx, config) {
-    config = _.cloneDeep(config);
+	configInject(ctx, config) {
+		config = _.cloneDeep(config);
 
-    config.contracts = _.map(config.contracts, (n) => _.template(n)(ctx));
+		config.contracts = _.map(config.contracts, (n) => _.template(n)(ctx));
 
-    if (config.from) {
-      config.from = _.template(config.from)(ctx);
-    }
+		if (config.from) {
+			config.from = _.template(config.from)(ctx);
+		}
 
-    if (config.salt) {
-      config.salt = _.template(config.salt)(ctx);
-    }
+		if (config.salt) {
+			config.salt = _.template(config.salt)(ctx);
+		}
 
-    return config;
-  },
+		return config;
+	},
 
-  async exec(runtime, ctx, config, packageState) {
-    const { generateRouter } = require("@synthetixio/router/dist/generate");
-    const {
-      compileContract,
-      getCompileInput,
-    } = require("@synthetixio/router/dist/compile");
+	getInputs(config) {
+		return config.contracts.map((c) =>
+			c.includes(".") ? `imports.${c.split(".")[0]}` : `contracts.${c}`,
+		);
+	},
 
-    debug("exec", config);
+	getOutputs(_, packageState) {
+		return [`contracts.${packageState.currentLabel.split(".")[1]}`];
+	},
 
-    const contracts = config.contracts.map((n) => {
-      const contract = getContractDefinitionFromPath(ctx, n);
-      if (!contract) {
-        throw new Error(`contract not found: ${n}`);
-      }
+	async exec(runtime, ctx, config, packageState) {
+		const { generateRouter } = require("@synthetixio/router/dist/generate");
+		const { compileContract, getCompileInput } = require("@synthetixio/router/dist/compile");
 
-      return {
-        constructorArgs: contract.constructorArgs,
-        abi: contract.abi,
-        deployedAddress: contract.address,
-        deployTxnHash: contract.deployTxnHash,
-        contractName: contract.contractName,
-        sourceName: contract.sourceName,
-        contractFullyQualifiedName: `${contract.sourceName}:${contract.contractName}`,
-      };
-    });
+		debug("exec", config);
 
-    const contractName = packageState.currentLabel.slice("router.".length);
+		const contracts = config.contracts.map((n) => {
+			const contract = getContractDefinitionFromPath(ctx, n);
+			if (!contract) {
+				throw new Error(`contract not found: ${n}`);
+			}
 
-    const sourceCode = generateRouter({
-      contractName,
-      contracts,
-    });
+			return {
+				constructorArgs: contract.constructorArgs,
+				abi: contract.abi,
+				deployedAddress: contract.address,
+				deployTxnHash: contract.deployTxnHash,
+				contractName: contract.contractName,
+				sourceName: contract.sourceName,
+				contractFullyQualifiedName: `${contract.sourceName}:${contract.contractName}`,
+			};
+		});
 
-    debug("router source code", sourceCode);
+		const contractName = packageState.currentLabel.slice("router.".length);
 
-    const inputData = await getCompileInput(contractName, sourceCode);
-    const solidityInfo = await compileContract(contractName, sourceCode);
+		const sourceCode = generateRouter({
+			contractName,
+			contracts,
+		});
 
-    // the abi is entirely basedon the fallback call so we have to generate ABI here
-    const routableAbi = getMergedAbiFromContractPaths(ctx, config.contracts);
+		debug("router source code", sourceCode);
 
-    runtime.reportContractArtifact(`${contractName}.sol:${contractName}`, {
-      contractName,
-      sourceName: `${contractName}.sol`,
-      abi: routableAbi,
-      bytecode: solidityInfo.bytecode,
-      deployedBytecode: solidityInfo.deployedBytecode,
-      linkReferences: {},
-      source: {
-        solcVersion: require("solc")
-          .version()
-          .match(/(^.*commit\.[0-9a-f]*)\..*/)[1],
-        input: JSON.stringify(inputData),
-      },
-    });
+		const inputData = await getCompileInput(contractName, sourceCode);
+		const solidityInfo = await compileContract(contractName, sourceCode);
 
-    const deployTxn = await ContractFactory.fromSolidity(
-      solidityInfo
-    ).getDeployTransaction();
+		// the abi is entirely basedon the fallback call so we have to generate ABI here
+		const routableAbi = getMergedAbiFromContractPaths(ctx, config.contracts);
 
-    const signer = config.from
-      ? await runtime.getSigner(config.from)
-      : await runtime.getDefaultSigner(deployTxn, config.salt);
+		runtime.reportContractArtifact(`${contractName}.sol:${contractName}`, {
+			contractName,
+			sourceName: `${contractName}.sol`,
+			abi: routableAbi,
+			bytecode: solidityInfo.bytecode,
+			deployedBytecode: solidityInfo.deployedBytecode,
+			linkReferences: {},
+			source: {
+				solcVersion: require("solc")
+					.version()
+					.match(/(^.*commit\.[0-9a-f]*)\..*/)[1],
+				input: JSON.stringify(inputData),
+			},
+		});
 
-    debug("using deploy signer with address", await signer.getAddress());
+		const deployTxn = await ContractFactory.fromSolidity(solidityInfo).getDeployTransaction();
 
-    const deployedRouterContractTxn = await signer.sendTransaction(deployTxn);
+		const signer = config.from
+			? await runtime.getSigner(config.from)
+			: await runtime.getDefaultSigner(deployTxn, config.salt);
 
-    const receipt = await deployedRouterContractTxn.wait();
+		debug("using deploy signer with address", await signer.getAddress());
 
-    return {
-      contracts: {
-        [contractName]: {
-          address: receipt.contractAddress,
-          abi: routableAbi,
-          deployedOn: packageState.currentLabel,
-          deployTxnHash: deployedRouterContractTxn.hash,
-          contractName,
-          sourceName: contractName + ".sol",
-          //sourceCode
-        },
-      },
-    };
-  },
+		const deployedRouterContractTxn = await signer.sendTransaction(deployTxn);
+
+		const receipt = await deployedRouterContractTxn.wait();
+
+		return {
+			contracts: {
+				[contractName]: {
+					address: receipt.contractAddress,
+					abi: routableAbi,
+					deployedOn: packageState.currentLabel,
+					deployTxnHash: deployedRouterContractTxn.hash,
+					contractName,
+					sourceName: contractName + ".sol",
+					//sourceCode
+				},
+			},
+		};
+	},
 };
